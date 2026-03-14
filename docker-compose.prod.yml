@@ -1,34 +1,41 @@
 services:
   mcp-server:
-    image: ghcr.io/iorlas/mcps:${IMAGE_TAG:-latest}
+    image: ghcr.io/iorlas/mcps:${IMAGE_TAG}
     environment:
-      - HOST=${HOST:-0.0.0.0}
-      - PORT=${PORT:-8000}
+      - HOST=0.0.0.0
+      - PORT=8000
       - AUTH_USERS=${AUTH_USERS}
       - AUTH_SECRET_KEY=${AUTH_SECRET_KEY}
-      - AUTH_ISSUER=${AUTH_ISSUER:-https://mcps.shen.iorlas.net}
-      - JACKETT_URL=${JACKETT_URL:-http://jackett:9117}
+      - AUTH_ISSUER=https://mcps.shen.iorlas.net
+      - JACKETT_URL=http://jackett:9117
       - JACKETT_API_KEY=${JACKETT_API_KEY}
       - TMDB_API_KEY=${TMDB_API_KEY}
-      - TRANSMISSION_HOST=${TRANSMISSION_HOST}
-      - TRANSMISSION_PORT=${TRANSMISSION_PORT:-9091}
-      - TRANSMISSION_PATH=${TRANSMISSION_PATH:-/transmission/rpc}
+      - TRANSMISSION_HOST=torrents.segaa.keenetic.link
+      - TRANSMISSION_PORT=443
+      - TRANSMISSION_PATH=/transmission/rpc
       - TRANSMISSION_USER=${TRANSMISSION_USER}
       - TRANSMISSION_PASS=${TRANSMISSION_PASS}
-      - TRANSMISSION_SSL=${TRANSMISSION_SSL:-false}
+      - TRANSMISSION_SSL=true
     expose:
       - "8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - dokploy-network
     depends_on:
       jackett:
         condition: service_healthy
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.mcps.rule=Host(`mcps.shen.iorlas.net`)"
-      - "traefik.http.routers.mcps.entrypoints=websecure"
-      - "traefik.http.routers.mcps.tls.certresolver=letsencrypt"
-      - "traefik.http.services.mcps.loadbalancer.server.port=8000"
+      - traefik.enable=true
+      - traefik.http.routers.mcps.rule=Host(`mcps.shen.iorlas.net`)
+      - traefik.http.routers.mcps.entrypoints=websecure
+      - traefik.http.routers.mcps.tls.certresolver=letsencrypt
+      - traefik.http.services.mcps.loadbalancer.server.port=8000
+    restart: unless-stopped
 
   jackett:
     image: linuxserver/jackett:latest
@@ -36,18 +43,20 @@ services:
       - jackett-config:/config
     expose:
       - "9117"
-    networks:
-      - dokploy-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9117"]
       interval: 30s
       timeout: 3s
       start_period: 10s
+    networks:
+      - dokploy-network
     labels:
-      - "traefik.enable=true"
-      - "tailscale=true"
-      - "traefik.http.routers.mcps-jackett.rule=Host(`jackett.ts.shen.iorlas.net`)"
-      - "traefik.http.services.mcps-jackett.loadbalancer.server.port=9117"
+      - tailscale=true
+      - traefik.enable=true
+      - traefik.http.routers.mcps-jackett.rule=Host(`jackett.ts.shen.iorlas.net`)
+      - traefik.http.routers.mcps-jackett.entrypoints=web
+      - traefik.http.services.mcps-jackett.loadbalancer.server.port=9117
+    restart: unless-stopped
 
 volumes:
   jackett-config:
