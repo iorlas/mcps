@@ -68,16 +68,18 @@ def _propfind(path: str, depth: int = 1) -> list[FileEntry]:
         size = int(size_el.text) if size_el is not None else 0
 
         name = clean.rstrip("/").split("/")[-1]
-        # Skip macOS junk
-        if name.startswith("._") or name == ".DS_Store" or name.startswith(".Spotlight") or name.startswith(".fseventsd"):
+        # Skip hidden/system files
+        if name.startswith("."):
             continue
 
+        # Directories report filesystem block size, not content size
+        file_size = 0 if is_dir else size
         entries.append(FileEntry(
             name=name,
             path=clean + ("/" if is_dir else ""),
             is_dir=is_dir,
-            size=size,
-            size_mb=round(size / (1024 * 1024), 1),
+            size=file_size,
+            size_mb=round(file_size / (1024 * 1024), 1),
         ))
     return entries
 
