@@ -41,8 +41,14 @@ def apply_query[T: BaseModel](
         return items
 
     data = [item.model_dump() for item in items]
-    key_field = "index" if data and "index" in data[0] else "id"
-    key_to_item = {getattr(item, key_field): item for item in items}
+    key_field = next((k for k in ("index", "id", "name", "path") if data and k in data[0]), None)
+    if key_field:
+        key_to_item = {getattr(item, key_field): item for item in items}
+    else:
+        key_to_item = {i: item for i, item in enumerate(items)}
+        for i, d in enumerate(data):
+            d["_idx"] = i
+        key_field = "_idx"
 
     if filter_expr:
         filter_expr = _quote_numbers(filter_expr)
@@ -77,8 +83,8 @@ def project[T: BaseModel](
         return []
 
     sample = items[0].model_dump()
-    key_field = "index" if "index" in sample else "id"
-    include = set(fields) | {key_field}
+    key_field = next((k for k in ("index", "id") if k in sample), None)
+    include = set(fields) | ({key_field} if key_field else set())
     return [item.model_dump(include=include) for item in items]
 
 
