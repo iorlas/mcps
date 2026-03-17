@@ -26,11 +26,13 @@ binds:
           exposeHeaders: ["Mcp-Session-Id"]
         mcpAuthentication:
           mode: strict
-          issuer: https://pioneering-friendship-09-staging.authkit.app
+          issuer: https://dev-ombhlv0g10x6js0j.us.auth0.com/
           audiences:
           - https://reelm.shen.iorlas.net
           jwks:
-            url: https://pioneering-friendship-09-staging.authkit.app/oauth2/jwks
+            url: https://dev-ombhlv0g10x6js0j.us.auth0.com/.well-known/jwks.json
+          provider:
+            auth0: {}
           resourceMetadata:
             resource: https://reelm.shen.iorlas.net/mcp
             scopesSupported:
