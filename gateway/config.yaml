@@ -30,7 +30,7 @@ binds:
           audiences:
           - https://reelm.shen.iorlas.net
           jwks:
-            url: https://pioneering-friendship-09-staging.authkit.app/.well-known/jwks.json
+            url: https://pioneering-friendship-09-staging.authkit.app/oauth2/jwks
           resourceMetadata:
             resource: https://reelm.shen.iorlas.net/mcp
             scopesSupported:
