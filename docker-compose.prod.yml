@@ -16,7 +16,7 @@ services:
   # ── Gateway (public, handles auth + federation) ──
   gateway:
     image: ghcr.io/iorlas/reelm-gateway:${IMAGE_TAG}
-      expose:
+    expose:
       - "3000"
     networks:
       - dokploy-network
