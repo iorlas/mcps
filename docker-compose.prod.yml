@@ -18,10 +18,8 @@ services:
     <<: *reelm
     command: ["sh", "-c", "uv run uvicorn mcps.gateway:app --host 0.0.0.0 --port 8000"]
     environment:
-      AUTH0_DOMAIN: ${AUTH0_DOMAIN}
-      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID}
-      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET}
-      AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       BASE_URL: https://reelm.shen.iorlas.net
       TRANSMISSION_MCP_URL: http://reelm-transmission:8000/mcp/
       JACKETT_MCP_URL: http://reelm-jackett:8000/mcp/

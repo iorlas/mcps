@@ -1,11 +1,11 @@
 # Reelm — AI-native Media Agent
 
-Reelm collects, downloads, and manages media via MCP servers (Transmission, Jackett, Storage) behind a FastMCP gateway with Auth0 OAuth.
+Reelm collects, downloads, and manages media via MCP servers (Transmission, Jackett, Storage) behind a FastMCP gateway with Google OAuth 2.1.
 
 ## Before Making Code Decisions
 
 - **Before deploying:** `~/Documents/Knowledge/Researches/036-deployment-platform/guidelines/` — Dokploy API, Traefik, CI/CD, production lessons
-- **Before changing auth/gateway:** `~/Documents/Knowledge/Researches/036-deployment-platform/guidelines/mcp-auth-gateway.md` — MCP OAuth options, Auth0 DCR
+- **Before changing auth/gateway:** `~/Documents/Knowledge/Researches/036-deployment-platform/guidelines/mcp-auth-gateway.md` — MCP OAuth options, provider comparison
 
 ## Dev Commands
 
@@ -18,7 +18,7 @@ Reelm collects, downloads, and manages media via MCP servers (Transmission, Jack
 ## Architecture
 
 ```
-Internet → FastMCP Gateway (OAuth 2.1, Auth0, tool federation)
+Internet → FastMCP Gateway (OAuth 2.1, Google, tool federation)
                ├→ reelm-transmission (MCP server, Transmission RPC)
                ├→ reelm-jackett (MCP server, torrent search)
                ├→ reelm-storage (MCP server, WebDAV file ops)
@@ -26,9 +26,9 @@ Internet → FastMCP Gateway (OAuth 2.1, Auth0, tool federation)
 ```
 
 - **Each MCP server is standalone** — no auth, no shared state, independently deployable
-- **Gateway** handles auth (Auth0 OAuth 2.1 via FastMCP) and federation (tool prefixing)
+- **Gateway** handles auth (Google OAuth 2.1 via FastMCP GoogleProvider) and federation (tool prefixing)
 - **Source layout**: `src/mcps/servers/` — one file per MCP server, `src/mcps/shared/` — pagination, query, schema utils
-- **Gateway**: `src/mcps/gateway.py` — FastMCP proxy with Auth0Provider + mounted backends
+- **Gateway**: `src/mcps/gateway.py` — FastMCP proxy with GoogleProvider + mounted backends
 
 ## Conventions
 

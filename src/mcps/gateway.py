@@ -1,6 +1,6 @@
 """Reelm MCP Gateway — OAuth 2.1 + multi-backend federation via FastMCP.
 
-Replaces agentgateway. Handles Auth0 DCR, JWT validation, tool prefixing.
+Google OAuth 2.1 via FastMCP GoogleProvider, JWT validation, tool prefixing.
 Future: output compression, rate limiting, custom orchestration tools.
 
 Usage:
@@ -11,13 +11,11 @@ import os
 
 from fastmcp import FastMCP
 from fastmcp.server import create_proxy
-from fastmcp.server.auth.providers.auth0 import Auth0Provider
+from fastmcp.server.auth.providers.google import GoogleProvider
 
-# Auth0 config from environment
-AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN", "dev-ombhlv0g10x6js0j.us.auth0.com")
-AUTH0_CLIENT_ID = os.environ.get("AUTH0_CLIENT_ID", "")
-AUTH0_CLIENT_SECRET = os.environ.get("AUTH0_CLIENT_SECRET", "")
-AUTH0_AUDIENCE = os.environ.get("AUTH0_AUDIENCE", "https://reelm.shen.iorlas.net")
+# Google OAuth config from environment
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 BASE_URL = os.environ.get("BASE_URL", "https://reelm.shen.iorlas.net")
 
 # Backend MCP server URLs (internal Docker network)
@@ -27,11 +25,9 @@ STORAGE_URL = os.environ.get("STORAGE_MCP_URL", "http://reelm-storage:8000/mcp/"
 TMDB_URL = os.environ.get("TMDB_MCP_URL", "http://reelm-tmdb:8000/mcp/")
 
 # --- Auth ---
-auth = Auth0Provider(
-    config_url=f"https://{AUTH0_DOMAIN}/.well-known/openid-configuration",
-    client_id=AUTH0_CLIENT_ID,
-    client_secret=AUTH0_CLIENT_SECRET,
-    audience=AUTH0_AUDIENCE,
+auth = GoogleProvider(
+    client_id=GOOGLE_CLIENT_ID,
+    client_secret=GOOGLE_CLIENT_SECRET,
     base_url=BASE_URL,
     require_authorization_consent=False,
 )
