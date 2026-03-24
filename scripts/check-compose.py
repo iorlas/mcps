@@ -61,6 +61,11 @@ def lint_compose(path: Path) -> list[str]:
                     if "${" not in tag:
                         errors.append(f"{prefix}: own image tag '{tag}' doesn't look SHA-pinned (expected main-<sha7> or ${{IMAGE_TAG}})")
 
+            # Images with no tag default to :latest implicitly
+            if ":" not in image and "${" not in image:
+                if svc.get("pull_policy") != "always":
+                    errors.append(f"{prefix}: image '{image}' has no tag (defaults to :latest) — add explicit tag or set 'pull_policy: always'")
+
             # Any image with :latest or :main should have pull_policy
             if image.endswith(":latest") or image.endswith(":main"):
                 if svc.get("pull_policy") != "always":
