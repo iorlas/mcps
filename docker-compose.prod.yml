@@ -84,6 +84,7 @@ services:
   # ── Jackett (torrent indexer) ──
   jackett:
     image: linuxserver/jackett:latest
+    pull_policy: always
     volumes:
       - jackett-config:/config
     expose:

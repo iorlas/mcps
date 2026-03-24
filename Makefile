@@ -16,6 +16,7 @@ lint:
 	@docker compose -f docker-compose.yml config --quiet
 	@uv run python scripts/check-json.py
 	@uv run python scripts/check-file-length.py
+	@uv run python scripts/check-compose.py
 	@uv run pip-audit
 
 # ── Fix: auto-fix formatting and import sorting, then verify with lint. ──
