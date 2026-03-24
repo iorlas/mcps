@@ -1,8 +1,11 @@
-"""Reelm Memory — shared household media context via OpenMemory.
+"""Reelm Memory — shared household media context via OpenViking.
 
-Wraps OpenMemory REST API. NOT your personal AI memory — this persists
+Wraps OpenViking REST API. NOT your personal AI memory — this persists
 across all AI clients and is shared by all household members.
 """
+
+import hashlib
+import time
 
 import httpx
 from fastmcp import FastMCP
@@ -15,27 +18,35 @@ _BASE_URL = settings.openviking_url
 
 
 async def _post(path: str, json: dict) -> dict:
-    """POST to OpenMemory API with error handling."""
+    """POST to OpenViking API."""
     async with httpx.AsyncClient(base_url=_BASE_URL, timeout=30.0) as client:
         resp = await client.post(path, json=json)
         resp.raise_for_status()
         return resp.json()
 
 
-async def _get(path: str, params: dict | None = None) -> dict | list:
-    """GET from OpenMemory API with error handling."""
+async def _get(url: str) -> dict:
+    """GET from OpenViking API."""
     async with httpx.AsyncClient(base_url=_BASE_URL, timeout=30.0) as client:
-        resp = await client.get(path, params=params)
+        resp = await client.get(url)
         resp.raise_for_status()
         return resp.json()
 
 
-async def _delete(path: str) -> dict:
-    """DELETE from OpenMemory API with error handling."""
-    async with httpx.AsyncClient(base_url=_BASE_URL, timeout=30.0) as client:
-        resp = await client.delete(path)
-        resp.raise_for_status()
-        return resp.json()
+async def _ensure_dir(uri: str) -> None:
+    """Create directory if it doesn't exist. Ignores 409 (already exists)."""
+    try:
+        await _post("/api/v1/fs/mkdir", json={"uri": uri})
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code != 409:
+            raise
+
+
+def _memory_id(text: str) -> str:
+    """Generate a deterministic memory filename from content."""
+    ts = int(time.time())
+    h = hashlib.sha256(text.encode()).hexdigest()[:8]
+    return f"{ts}-{h}.md"
 
 
 @mcp.tool
@@ -54,18 +65,18 @@ async def remember(
                  Use a name (e.g., "denis") for personal preferences.
     """
     try:
-        result = await _post(
-            "/memories",
+        mem_dir = f"viking://user/memories/{user_id}/"
+        await _ensure_dir(mem_dir)
+        filename = _memory_id(text)
+        target_uri = f"{mem_dir}{filename}"
+        await _post(
+            "/api/v1/resources",
             json={
-                "messages": [{"role": "user", "content": text}],
-                "user_id": user_id,
+                "content": text,
+                "to": target_uri,
             },
         )
-        entries = result.get("results", [])
-        if not entries:
-            return "Memory stored (no details returned)."
-        parts = [f"- [{e.get('event', '?')}] {e.get('memory', '?')} (id: {e.get('id', '?')})" for e in entries]
-        return "Stored:\n" + "\n".join(parts)
+        return f"Stored: {text[:80]}{'...' if len(text) > 80 else ''} (uri: {target_uri})"
     except Exception as e:  # noqa: BLE001 — graceful degradation, memory is optional
         return f"Memory unavailable: {e}"
 
@@ -85,16 +96,16 @@ async def recall(
     """
     try:
         result = await _post(
-            "/memories/search",
+            "/api/v1/search/find",
             json={
                 "query": query,
-                "user_id": user_id,
+                "target_uri": f"viking://user/memories/{user_id}/",
             },
         )
-        entries = result.get("results", result) if isinstance(result, dict) else result
-        if not entries:
+        memories = result.get("result", {}).get("memories", [])
+        if not memories:
             return "Nothing found in household memory."
-        parts = [f"- {e.get('memory', '?')} (score: {e.get('score', '?')}, id: {e.get('id', '?')})" for e in entries]
+        parts = [f"- {m.get('abstract', '?')} (score: {m.get('score', '?')}, uri: {m.get('uri', '?')})" for m in memories]
         return "Found:\n" + "\n".join(parts)
     except Exception as e:  # noqa: BLE001 — graceful degradation, memory is optional
         return f"Memory unavailable: {e}"
@@ -110,11 +121,12 @@ async def list_memories(
         user_id: Filter by household member. Default "household" for shared facts.
     """
     try:
-        result = await _get("/memories", params={"user_id": user_id})
-        entries = result.get("results", result) if isinstance(result, dict) else result
+        mem_uri = f"viking://user/memories/{user_id}/"
+        result = await _get(f"/api/v1/fs/ls?uri={mem_uri}")
+        entries = [e for e in result.get("result", []) if not e.get("isDir", False)]
         if not entries:
             return "No memories stored yet."
-        parts = [f"- {e.get('memory', '?')} (id: {e.get('id', '?')})" for e in entries]
+        parts = [f"- {e.get('name', '?')} (uri: {e.get('uri', '?')})" for e in entries]
         return f"Memories ({len(entries)}):\n" + "\n".join(parts)
     except Exception as e:  # noqa: BLE001 — graceful degradation, memory is optional
         return f"Memory unavailable: {e}"
@@ -124,13 +136,25 @@ async def list_memories(
 async def forget(
     memory_id: str,
 ) -> str:
-    """Delete a specific memory from household storage.
+    """Archive a specific memory from household storage (recoverable).
 
     Args:
-        memory_id: The ID of the memory to delete (from recall or list_memories results).
+        memory_id: The URI of the memory to archive (from recall or list_memories results).
     """
     try:
-        await _delete(f"/memories/{memory_id}")
-        return f"Forgotten (id: {memory_id})."
+        # Extract user_id and filename from URI: viking://user/memories/{user_id}/{filename}
+        parts = memory_id.replace("viking://user/memories/", "").rstrip("/").split("/")
+        user_id = parts[0] if len(parts) > 1 else "household"
+        filename = parts[-1]
+        archive_dir = f"viking://user/archive/{user_id}/"
+        await _ensure_dir(archive_dir)
+        await _post(
+            "/api/v1/fs/mv",
+            json={
+                "from_uri": memory_id,
+                "to_uri": f"{archive_dir}{filename}",
+            },
+        )
+        return f"Archived: {filename} (was: {memory_id})"
     except Exception as e:  # noqa: BLE001 — graceful degradation, memory is optional
         return f"Memory unavailable: {e}"
