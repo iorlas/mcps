@@ -162,15 +162,17 @@ redundant-cast = "warn"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --strict-markers --cov --cov-report=term:skip-covered --cov-report=xml --cov-fail-under=90"
+addopts = "-v --strict-markers --cov --cov-report=term:skip-covered --cov-report=xml --cov-fail-under=94"
 pythonpath = ["src"]
 markers = [
     "unit: unit tests",
+    "contract: external API verification",
 ]
 
 [tool.coverage.run]
 source = ["src/mcps"]
 branch = true
+omit = ["src/mcps/gateway.py"]
 
 [tool.coverage.report]
 show_missing = false
