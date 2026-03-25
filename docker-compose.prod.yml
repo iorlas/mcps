@@ -1,4 +1,4 @@
-x-reelm: &reelm
+x-hub: &hub
   image: ghcr.io/iorlas/reelm:${IMAGE_TAG}
   expose:
     - "8000"
@@ -15,41 +15,41 @@ x-reelm: &reelm
 services:
   # ── Gateway (public, handles auth + federation) ──
   gateway:
-    <<: *reelm
+    <<: *hub
     command: ["sh", "-c", "uv run uvicorn mcps.gateway:app --host 0.0.0.0 --port 8000"]
     environment:
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      BASE_URL: https://reelm.shen.iorlas.net
-      TRANSMISSION_MCP_URL: http://reelm-transmission:8000/mcp/
-      JACKETT_MCP_URL: http://reelm-jackett:8000/mcp/
-      STORAGE_MCP_URL: http://reelm-storage:8000/mcp/
-      TMDB_MCP_URL: http://reelm-tmdb:8000/mcp/
+      BASE_URL: https://hub.shen.iorlas.net
+      TRANSMISSION_MCP_URL: http://hub-transmission:8000/mcp/
+      JACKETT_MCP_URL: http://hub-jackett:8000/mcp/
+      STORAGE_MCP_URL: http://hub-storage:8000/mcp/
+      TMDB_MCP_URL: http://hub-tmdb:8000/mcp/
       OPENVIKING_URL: http://openviking:1933
     depends_on:
-      reelm-transmission:
+      hub-transmission:
         condition: service_healthy
-      reelm-jackett:
+      hub-jackett:
         condition: service_healthy
-      reelm-storage:
+      hub-storage:
         condition: service_healthy
-      reelm-tmdb:
+      hub-tmdb:
         condition: service_healthy
       openviking:
         condition: service_healthy
     networks:
       - dokploy-network
-      - reelm-internal
+      - hub-internal
     labels:
       traefik.enable: "true"
-      traefik.http.routers.reelm.rule: Host(`reelm.shen.iorlas.net`)
-      traefik.http.routers.reelm.entrypoints: websecure
-      traefik.http.routers.reelm.tls.certresolver: letsencrypt
-      traefik.http.services.reelm.loadbalancer.server.port: "8000"
+      traefik.http.routers.hub.rule: Host(`hub.shen.iorlas.net`)
+      traefik.http.routers.hub.entrypoints: websecure
+      traefik.http.routers.hub.tls.certresolver: letsencrypt
+      traefik.http.services.hub.loadbalancer.server.port: "8000"
 
-  # ── Reelm MCP servers (internal, no auth) ──
-  reelm-transmission:
-    <<: *reelm
+  # ── Hub MCP servers (internal, no auth) ──
+  hub-transmission:
+    <<: *hub
     command: ["sh", "-c", "uv run uvicorn mcps.server:transmission --host 0.0.0.0 --port 8000"]
     environment:
       TRANSMISSION_HOST: torrents.segaa.keenetic.link
@@ -59,8 +59,8 @@ services:
       TRANSMISSION_PASS: ${TRANSMISSION_PASS}
       TRANSMISSION_SSL: "true"
 
-  reelm-jackett:
-    <<: *reelm
+  hub-jackett:
+    <<: *hub
     command: ["sh", "-c", "uv run uvicorn mcps.server:jackett --host 0.0.0.0 --port 8000"]
     environment:
       JACKETT_URL: http://jackett:9117
@@ -69,16 +69,16 @@ services:
       jackett:
         condition: service_healthy
 
-  reelm-storage:
-    <<: *reelm
+  hub-storage:
+    <<: *hub
     command: ["sh", "-c", "uv run uvicorn mcps.server:storage --host 0.0.0.0 --port 8000"]
     environment:
       WEBDAV_URL: ${WEBDAV_URL}
       WEBDAV_USER: ${WEBDAV_USER}
       WEBDAV_PASS: ${WEBDAV_PASS}
 
-  reelm-tmdb:
-    <<: *reelm
+  hub-tmdb:
+    <<: *hub
     command: ["sh", "-c", "uv run uvicorn mcps.server:tmdb --host 0.0.0.0 --port 8000"]
     environment:
       TMDB_API_KEY: ${TMDB_API_KEY}
@@ -101,9 +101,9 @@ services:
     labels:
       tailscale: "true"
       traefik.enable: "true"
-      traefik.http.routers.reelm-jackett-admin.rule: Host(`jackett.ts.shen.iorlas.net`)
-      traefik.http.routers.reelm-jackett-admin.entrypoints: web
-      traefik.http.services.reelm-jackett-admin.loadbalancer.server.port: "9117"
+      traefik.http.routers.hub-jackett-admin.rule: Host(`jackett.ts.shen.iorlas.net`)
+      traefik.http.routers.hub-jackett-admin.entrypoints: web
+      traefik.http.services.hub-jackett-admin.loadbalancer.server.port: "9117"
     restart: unless-stopped
 
   # ── OpenViking (household memory) ──
@@ -145,7 +145,7 @@ services:
       start_period: 30s
     networks:
       - dokploy-network
-      - reelm-internal
+      - hub-internal
     restart: unless-stopped
 
 volumes:
@@ -155,5 +155,5 @@ volumes:
 networks:
   dokploy-network:
     external: true
-  reelm-internal:
+  hub-internal:
     internal: true

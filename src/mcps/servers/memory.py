@@ -1,4 +1,4 @@
-"""Reelm Memory — shared household media context via OpenViking.
+"""Hub Memory — shared household media context via OpenViking.
 
 Wraps OpenViking REST API. NOT your personal AI memory — this persists
 across all AI clients and is shared by all household members.

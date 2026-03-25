@@ -1,6 +1,6 @@
-# Reelm — AI-native Media Agent
+# Hub — AI-native Personal Agent
 
-Reelm collects, downloads, and manages media via MCP servers (Transmission, Jackett, Storage) behind a FastMCP gateway with Google OAuth 2.1.
+Hub connects and manages home services via MCP servers (Transmission, Jackett, Storage, TMDB) behind a FastMCP gateway with Google OAuth 2.1.
 
 ## Before Making Code Decisions
 
@@ -19,9 +19,9 @@ Reelm collects, downloads, and manages media via MCP servers (Transmission, Jack
 
 ```
 Internet → FastMCP Gateway (OAuth 2.1, Google, tool federation)
-               ├→ reelm-transmission (MCP server, Transmission RPC)
-               ├→ reelm-jackett (MCP server, torrent search)
-               ├→ reelm-storage (MCP server, WebDAV file ops)
+               ├→ hub-transmission (MCP server, Transmission RPC)
+               ├→ hub-jackett (MCP server, torrent search)
+               ├→ hub-storage (MCP server, WebDAV file ops)
                └→ future services (Jellyfin, mem0, etc.)
 ```
 
@@ -49,7 +49,7 @@ Internet → FastMCP Gateway (OAuth 2.1, Google, tool federation)
 
 - Never add auth code to MCP servers — gateway handles all auth
 - Never use SSH for deployment debugging — escalation: API → UI → Swagger → SSH (last resort)
-- Never use `:latest` tag for reelm images — always SHA-pinned
+- Never use `:latest` tag for hub images — always SHA-pinned
 - Never manually create/start/stop Dokploy-managed containers with docker commands
 - Never commit secrets or `.env` files
 

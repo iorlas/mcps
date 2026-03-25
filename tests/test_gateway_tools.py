@@ -11,18 +11,18 @@ from mcps.servers.tmdb import mcp as tmdb_mcp
 from mcps.servers.transmission import mcp as transmission_mcp
 
 BACKENDS = {
-    "reelm_torrents": transmission_mcp,
-    "reelm_jackett": jackett_mcp,
-    "reelm_storage": storage_mcp,
-    "reelm_media": tmdb_mcp,
-    "reelm_memory": memory_mcp,
-    "reelm_skills": skills_mcp,
+    "hub_torrents": transmission_mcp,
+    "hub_jackett": jackett_mcp,
+    "hub_storage": storage_mcp,
+    "hub_media": tmdb_mcp,
+    "hub_memory": memory_mcp,
+    "hub_skills": skills_mcp,
 }
 
 
 @pytest.fixture
 def gateway():
-    gw = FastMCP("Reelm")
+    gw = FastMCP("Hub")
     for namespace, backend in BACKENDS.items():
         gw.mount(backend, namespace=namespace)
     return gw
@@ -45,12 +45,12 @@ async def test_gateway_lists_all_tools(gateway):
         assert len(ns_tools) > 0, f"No tools found for namespace {namespace}"
 
     # Spot-check known tools exist
-    assert "reelm_torrents_list_torrents" in tool_names
-    assert "reelm_jackett_search_torrents" in tool_names
-    assert "reelm_storage_list_dir" in tool_names
-    assert "reelm_media_search_media" in tool_names
-    assert "reelm_memory_remember" in tool_names
-    assert "reelm_skills_list_skills" in tool_names
+    assert "hub_torrents_list_torrents" in tool_names
+    assert "hub_jackett_search_torrents" in tool_names
+    assert "hub_storage_list_dir" in tool_names
+    assert "hub_media_search_media" in tool_names
+    assert "hub_memory_remember" in tool_names
+    assert "hub_skills_list_skills" in tool_names
 
 
 @pytest.mark.unit

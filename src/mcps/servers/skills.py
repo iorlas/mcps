@@ -1,4 +1,4 @@
-"""Reelm Skills — distributes thinking skills to any AI client.
+"""Hub Skills — distributes thinking skills to any AI client.
 
 Serves skill definitions (SKILL.md content) via MCP tools so that
 Claude.ai, ChatGPT, ShulGPT, or any MCP-compatible client can use

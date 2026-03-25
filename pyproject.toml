@@ -1,7 +1,7 @@
 [project]
-name = "reelm"
-version = "0.2.0"
-description = "Your personal media agent — AI-native alternative to Sonarr/Radarr"
+name = "hub"
+version = "0.3.0"
+description = "Your personal AI hub — MCP gateway for home services"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
