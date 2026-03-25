@@ -218,6 +218,9 @@ def _ensure_magnet(detail: TorrentDetail) -> TorrentDetail:
     if detail.magneturl:
         return detail
 
+    if not detail.link:
+        return detail
+
     try:
         resp = httpx.get(detail.link, follow_redirects=True, timeout=30.0)
         if resp.url and str(resp.url).startswith("magnet:"):

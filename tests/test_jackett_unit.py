@@ -359,3 +359,15 @@ class TestEnsureMagnet:
             result = _ensure_magnet(detail)
 
         assert result.magneturl is None
+
+    def test_empty_link_returns_unchanged(self):
+        detail = TorrentDetail(
+            id="jkt_test1234",
+            title="Test",
+            link="",
+            size=1000,
+        )
+        from mcps.servers.jackett import _ensure_magnet
+
+        result = _ensure_magnet(detail)
+        assert result.magneturl is None

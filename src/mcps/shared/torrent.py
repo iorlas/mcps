@@ -22,4 +22,8 @@ def torrent_bytes_to_magnet(data: bytes) -> str:
     if name:
         magnet += f"&dn={quote(name.decode(errors='replace'))}"
 
+    # Include trackers for private tracker support
+    if b"announce" in torrent:
+        magnet += f"&tr={quote(torrent[b'announce'].decode(errors='replace'))}"
+
     return magnet

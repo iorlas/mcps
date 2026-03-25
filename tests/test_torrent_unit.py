@@ -40,3 +40,11 @@ class TestTorrentBytesToMagnet:
         data = bencodepy.encode({b"other": b"stuff"})
         with pytest.raises(ValueError, match=r"Invalid \.torrent file data"):
             torrent_bytes_to_magnet(data)
+
+    def test_includes_tracker(self):
+        info = {b"name": b"test", b"piece length": 262144, b"length": 1024, b"pieces": b"\x00" * 20}
+        torrent = {b"info": info, b"announce": b"udp://tracker.example.com:80"}
+        data = bencodepy.encode(torrent)
+        result = torrent_bytes_to_magnet(data)
+        assert "tr=" in result
+        assert "tracker.example.com" in result
