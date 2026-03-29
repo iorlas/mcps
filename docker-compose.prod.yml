@@ -131,7 +131,7 @@ services:
               "api_base": "http://litellm:4000/v1",
               "api_key": "no-auth",
               "model": "nomic-embed-text",
-              "dimension": 768
+              "dimension": 1536
             }
           }
         }
