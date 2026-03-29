@@ -5,6 +5,7 @@ across all AI clients and is shared by all household members.
 """
 
 import hashlib
+import io
 import time
 
 import httpx
@@ -34,13 +35,24 @@ async def _get(url: str) -> dict:
         return resp.json()
 
 
-async def _ensure_dir(uri: str) -> None:
-    """Create directory if it doesn't exist. Ignores 409 (already exists)."""
-    try:
-        await _post("/api/v1/fs/mkdir", json={"uri": uri})
-    except httpx.HTTPStatusError as e:
-        if e.response.status_code != 409:
-            raise
+async def _upload_text(text: str, filename: str, target_uri: str) -> dict:
+    """Upload text content via temp_upload, then add as resource."""
+    async with httpx.AsyncClient(base_url=_BASE_URL, headers=_HEADERS, timeout=30.0) as client:
+        # Step 1: temp upload
+        upload_resp = await client.post(
+            "/api/v1/resources/temp_upload",
+            files={"file": (filename, io.BytesIO(text.encode()), "text/markdown")},
+        )
+        upload_resp.raise_for_status()
+        temp_file_id = upload_resp.json().get("temp_file_id")
+
+        # Step 2: add resource at target URI
+        add_resp = await client.post(
+            "/api/v1/resources",
+            json={"temp_file_id": temp_file_id, "to": target_uri, "wait": True},
+        )
+        add_resp.raise_for_status()
+        return add_resp.json()
 
 
 def _memory_id(text: str) -> str:
@@ -66,17 +78,9 @@ async def remember(
                  Use a name (e.g., "denis") for personal preferences.
     """
     try:
-        mem_dir = f"viking://user/memories/{user_id}/"
-        await _ensure_dir(mem_dir)
         filename = _memory_id(text)
-        target_uri = f"{mem_dir}{filename}"
-        await _post(
-            "/api/v1/resources",
-            json={
-                "content": text,
-                "to": target_uri,
-            },
-        )
+        target_uri = f"viking://user/memories/{user_id}/{filename}"
+        await _upload_text(text, filename, target_uri)
         return f"Stored: {text[:80]}{'...' if len(text) > 80 else ''} (uri: {target_uri})"
     except Exception as e:  # noqa: BLE001 — graceful degradation, memory is optional
         return f"Memory unavailable: {e}"
@@ -147,13 +151,11 @@ async def forget(
         parts = memory_id.replace("viking://user/memories/", "").rstrip("/").split("/")
         user_id = parts[0] if len(parts) > 1 else "household"
         filename = parts[-1]
-        archive_dir = f"viking://user/archive/{user_id}/"
-        await _ensure_dir(archive_dir)
         await _post(
             "/api/v1/fs/mv",
             json={
                 "from_uri": memory_id,
-                "to_uri": f"{archive_dir}{filename}",
+                "to_uri": f"viking://user/archive/{user_id}/{filename}",
             },
         )
         return f"Archived: {filename} (was: {memory_id})"

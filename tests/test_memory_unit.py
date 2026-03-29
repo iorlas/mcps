@@ -21,6 +21,7 @@ def _mock_client(**method_responses):
 
     Usage: _mock_client(post=response_data, get=response_data)
     For side_effect, pass an Exception directly.
+    For sequential responses, pass a list.
     """
     client = AsyncMock()
     client.__aenter__ = AsyncMock(return_value=client)
@@ -28,6 +29,8 @@ def _mock_client(**method_responses):
     for method, value in method_responses.items():
         if isinstance(value, Exception):
             setattr(client, method, AsyncMock(side_effect=value))
+        elif isinstance(value, list):
+            setattr(client, method, AsyncMock(side_effect=[_mock_response(v) for v in value]))
         else:
             setattr(client, method, AsyncMock(return_value=_mock_response(value)))
     return client
@@ -37,29 +40,48 @@ def _mock_client(**method_responses):
 @pytest.mark.asyncio
 class TestRemember:
     async def test_remember_stores_memory(self):
-        mock = _mock_client(post={"status": "ok"})
+        # Two POST calls: temp_upload → resources
+        mock = _mock_client(post=[{"temp_file_id": "abc123"}, {"status": "ok"}])
         with patch("mcps.servers.memory.httpx.AsyncClient", return_value=mock):
             result = await remember("We finished Breaking Bad S5")
 
         assert "stored" in result.lower()
-        assert mock.post.call_count >= 1
+        assert mock.post.call_count == 2
 
     async def test_remember_with_custom_user_id(self):
-        mock = _mock_client(post={"status": "ok"})
+        mock = _mock_client(post=[{"temp_file_id": "abc123"}, {"status": "ok"}])
         with patch("mcps.servers.memory.httpx.AsyncClient", return_value=mock):
             result = await remember("Denis prefers 4K", user_id="denis")
 
         assert "stored" in result.lower()
-        calls = mock.post.call_args_list
-        resource_call = [c for c in calls if "/api/v1/resources" in str(c)]
-        assert len(resource_call) > 0
+        # Second call is the resources API with target URI
+        resource_call = mock.post.call_args_list[1]
+        body = resource_call.kwargs["json"]
+        assert "viking://user/memories/denis/" in body["to"]
 
     async def test_remember_returns_uri(self):
-        mock = _mock_client(post={"status": "ok"})
+        mock = _mock_client(post=[{"temp_file_id": "abc123"}, {"status": "ok"}])
         with patch("mcps.servers.memory.httpx.AsyncClient", return_value=mock):
             result = await remember("TV supports 4K HDR")
 
         assert "viking://user/memories/household/" in result
+
+    async def test_remember_uses_temp_upload(self):
+        mock = _mock_client(post=[{"temp_file_id": "abc123"}, {"status": "ok"}])
+        with patch("mcps.servers.memory.httpx.AsyncClient", return_value=mock):
+            await remember("test content")
+
+        # First call is temp_upload (multipart)
+        upload_call = mock.post.call_args_list[0]
+        assert "/api/v1/resources/temp_upload" in upload_call.args[0]
+        assert "files" in upload_call.kwargs
+
+        # Second call is resources API
+        resource_call = mock.post.call_args_list[1]
+        assert "/api/v1/resources" in resource_call.args[0]
+        body = resource_call.kwargs["json"]
+        assert body["temp_file_id"] == "abc123"
+        assert body["wait"] is True
 
     async def test_remember_handles_api_error(self):
         mock = _mock_client(post=Exception("Connection refused"))
